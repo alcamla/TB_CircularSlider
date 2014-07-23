@@ -167,6 +167,11 @@
 				CLASSPREFIX = TB;
 				LastUpgradeCheck = 0450;
 				ORGANIZATIONNAME = "Yari Dareglia";
+				TargetAttributes = {
+					A5EB2F7B16A1E217006E4B6A = {
+						DevelopmentTeam = HH752VC94S;
+					};
+				};
 			};
 			buildConfigurationList = A5EB2F7616A1E217006E4B6A /* Build configuration list for PBXProject "TB_CircularSlider" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -294,10 +299,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TB_CircularSlider/TB_CircularSlider.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "TB_CircularSlider/TB_CircularSlider-Prefix.pch";
 				INFOPLIST_FILE = "TB_CircularSlider/TB_CircularSlider-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -306,10 +314,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TB_CircularSlider/TB_CircularSlider.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "TB_CircularSlider/TB_CircularSlider-Prefix.pch";
 				INFOPLIST_FILE = "TB_CircularSlider/TB_CircularSlider-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;

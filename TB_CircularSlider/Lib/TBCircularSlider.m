@@ -42,7 +42,7 @@
         radius = self.frame.size.width/2 - TB_SAFEAREA_PADDING;
         
         //Initialize the Angle at 0
-        self.angle = 360;
+        self.angle = 225;
         
         
         //Define the Font
@@ -60,7 +60,8 @@
         _textField.textColor = [UIColor colorWithWhite:1 alpha:0.8];
         _textField.textAlignment = NSTextAlignmentCenter;
         _textField.font = font;
-        _textField.text = [NSString stringWithFormat:@"%d",self.angle];
+        //_textField.text = [NSString stringWithFormat:@"%d",self.angle];
+        _textField.text = [NSString stringWithFormat:@"%d", 0];
         _textField.enabled = NO;
         
         [self addSubview:_textField];
@@ -86,13 +87,31 @@
 
     //Get touch location
     CGPoint lastPoint = [touch locationInView:self];
-
-    //Use the location to design the Handle
-    [self movehandle:lastPoint];
     
-    //Control value has changed, let's notify that   
-    [self sendActionsForControlEvents:UIControlEventValueChanged];
+    // Find if the last point touched is in a valid angle
+    //Get the center
+    CGPoint centerPoint = CGPointMake(self.frame.size.width/2, self.frame.size.height/2);
     
+    //Calculate the direction from a center point and a arbitrary position.
+    float currentAngle = AngleFromNorth(centerPoint, lastPoint, NO);
+    int angle = 360 - floor(currentAngle);
+    
+    
+    NSLog(@"Current Angle: %d", angle);
+    
+    if (angle>225 && angle<315) {
+        //Stop tracking the movement
+    } else {
+        
+        //Use the location to design the Handle
+        [self movehandle:lastPoint];
+        
+        //Control value has changed, let's notify that
+        [self sendActionsForControlEvents:UIControlEventValueChanged];
+        
+        
+        
+    }
     return YES;
 }
 
@@ -135,7 +154,8 @@
     UIGraphicsBeginImageContext(CGSizeMake(TB_SLIDER_SIZE,TB_SLIDER_SIZE));
     CGContextRef imageCtx = UIGraphicsGetCurrentContext();
     
-    CGContextAddArc(imageCtx, self.frame.size.width/2  , self.frame.size.height/2, radius, 0, ToRad(self.angle), 0);
+    //CGContextAddArc(imageCtx, self.frame.size.width/2  , self.frame.size.height/2, radius, 0, ToRad(self.angle), 0);
+    CGContextAddArc(imageCtx, self.frame.size.width/2, self.frame.size.height/2, radius, 225*M_PI/180, 315*M_PI/180, 1);
     [[UIColor redColor]set];
     
     //Use shadow to create the Blur effect
@@ -143,6 +163,7 @@
     
     //define the path
     CGContextSetLineWidth(imageCtx, TB_LINE_WIDTH);
+    
     CGContextDrawPath(imageCtx, kCGPathStroke);
     
     //save the context content into the image mask
@@ -158,25 +179,50 @@
     CGImageRelease(mask);
     
     
-    
+
     /** THE GRADIENT **/
     
-    //list of components
-    CGFloat components[8] = {
-        0.0, 0.0, 1.0, 1.0,     // Start color - Blue
-        1.0, 0.0, 1.0, 1.0 };   // End color - Violet
+//    //list of components
+//    CGFloat components[8] = {
+//        0.0, 0.0, 1.0, 1.0,     // Start color - Blue
+//        1.0, 0.0, 1.0, 1.0 };   // End color - Violet
+//    
+//    CGColorSpaceRef baseSpace = CGColorSpaceCreateDeviceRGB();
+//    CGGradientRef gradient = CGGradientCreateWithColorComponents(baseSpace, components, NULL, 2);
+//    CGColorSpaceRelease(baseSpace), baseSpace = NULL;
+//    
+//    //Gradient direction
+//    CGPoint startPoint = CGPointMake(CGRectGetMidX(rect), CGRectGetMinY(rect));
+//    CGPoint endPoint = CGPointMake(CGRectGetMidX(rect), CGRectGetMaxY(rect));
+//    
+//    //Draw the gradient
+//    CGContextDrawLinearGradient(ctx, gradient, startPoint, endPoint, 0);
+//    CGGradientRelease(gradient), gradient = NULL;
     
-    CGColorSpaceRef baseSpace = CGColorSpaceCreateDeviceRGB();
-    CGGradientRef gradient = CGGradientCreateWithColorComponents(baseSpace, components, NULL, 2);
-    CGColorSpaceRelease(baseSpace), baseSpace = NULL;
+    //// Gradient Declarations
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    CGFloat gradientLocations[] = {0, 0.58, 0.79};
+
+
     
-    //Gradient direction
-    CGPoint startPoint = CGPointMake(CGRectGetMidX(rect), CGRectGetMinY(rect));
-    CGPoint endPoint = CGPointMake(CGRectGetMidX(rect), CGRectGetMaxY(rect));
+    //// Color Declarations
+    UIColor* stimulusColor = [UIColor colorWithRed: 0.842 green: 0.029 blue: 0.038 alpha: 1];
+    //[UIColor colorWithRed: 0.342 green: 0.842 blue: 0.304 alpha: 1];
     
-    //Draw the gradient
-    CGContextDrawLinearGradient(ctx, gradient, startPoint, endPoint, 0);
-    CGGradientRelease(gradient), gradient = NULL;
+    CGFloat stimulusColorRGBA[4];
+    [stimulusColor getRed: &stimulusColorRGBA[0] green: &stimulusColorRGBA[1] blue: &stimulusColorRGBA[2] alpha: &stimulusColorRGBA[3]];
+    UIColor* topColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.6) green: (stimulusColorRGBA[1] * 0.6) blue: (stimulusColorRGBA[2] * 0.6) alpha: (stimulusColorRGBA[3] * 0.6 + 0.4)];
+    UIColor* bottomColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.4 + 0.6) green: (stimulusColorRGBA[1] * 0.4 + 0.6) blue: (stimulusColorRGBA[2] * 0.4 + 0.6) alpha: (stimulusColorRGBA[3] * 0.4 + 0.6)];
+    CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)@[(id)bottomColor.CGColor, (id)[UIColor colorWithRed: 0.471 green: 0.721 blue: 0.452 alpha: 1].CGColor, (id)topColor.CGColor], gradientLocations);
+    
+    CGAffineTransform ovalTransform = CGAffineTransformMakeRotation(60*(-M_PI/180));
+    
+    
+    CGContextDrawLinearGradient(ctx, gradient,
+                                CGPointApplyAffineTransform(CGPointMake(CGRectGetMidX(rect), CGRectGetMinY(rect)), ovalTransform),
+                                CGPointApplyAffineTransform(CGPointMake(CGRectGetMidX(rect), CGRectGetMaxY(rect)+40), ovalTransform),
+                                0);
+     CGGradientRelease(gradient), gradient = NULL;
     
     CGContextRestoreGState(ctx);
     
@@ -215,9 +261,28 @@
     //Get the handle position
     CGPoint handleCenter =  [self pointFromAngle: self.angle];
     
+    //Translate the center of the context
+    CGContextTranslateCTM(ctx, handleCenter.x + TB_LINE_WIDTH/2, handleCenter.y+TB_LINE_WIDTH/2);
+    //Rotate the context
+    CGContextRotateCTM(ctx, 90.0* M_PI/180);
+    CGContextRotateCTM(ctx, -self.angle*M_PI/180);
+    
+    //Draw the handle
+    double h = TB_LINE_WIDTH, b = TB_LINE_WIDTH;
+    UIBezierPath* polygonPath = UIBezierPath.bezierPath;
+    [polygonPath moveToPoint: CGPointMake(0, -h/2)];
+    [polygonPath addLineToPoint: CGPointMake(b/2, h/2)];
+    [polygonPath addLineToPoint: CGPointMake(-b/2, h/2)];
+    [polygonPath closePath];
+    [[UIColor colorWithWhite:1.0 alpha:0.7] set];
+    [polygonPath fill];
+    
+    
     //Draw It!
+    /**
     [[UIColor colorWithWhite:1.0 alpha:0.7]set];
     CGContextFillEllipseInRect(ctx, CGRectMake(handleCenter.x, handleCenter.y, TB_LINE_WIDTH, TB_LINE_WIDTH));
+    */
     
     CGContextRestoreGState(ctx);
 }
@@ -238,11 +303,19 @@
     //Store the new angle
     self.angle = 360 - angleInt;
     //Update the textfield 
-    _textField.text =  [NSString stringWithFormat:@"%d", self.angle];
+    //_textField.text =  [NSString stringWithFormat:@"%d", self.angle];
+    if (self.angle >=0 && self.angle<= 225){
+        _textField.text = [NSString stringWithFormat:@"%d", 225-self.angle];
+    }
+    else if (self.angle >=315 && self.angle<=360){
+        _textField.text =  [NSString stringWithFormat:@"%d", 225+(360-self.angle)];
+    }
+
     
     //Redraw
     [self setNeedsDisplay];
 }
+
 
 /** Given the angle, get the point position on circumference **/
 -(CGPoint)pointFromAngle:(int)angleInt{
