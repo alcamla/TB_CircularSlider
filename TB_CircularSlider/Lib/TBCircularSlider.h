@@ -17,4 +17,6 @@
 
 @interface TBCircularSlider : UIControl
 @property (nonatomic,assign) int angle;
+@property (nonatomic, assign) CGPoint startingPosition;
+@property (nonatomic, assign) CGPoint currentPosition;
 @end

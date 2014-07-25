@@ -24,13 +24,22 @@
     UITextField *_textField;
     int radius;
 }
+
+@property (nonatomic, strong) CALayer *handleLayer;
 @end
 
+CABasicAnimation *makeRotateAnimation(float fromValue, float toValue) {
+    CABasicAnimation *rotate = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
+    rotate.fromValue = [NSNumber numberWithFloat:fromValue];
+    rotate.toValue = [NSNumber numberWithFloat:toValue];
+    rotate.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    rotate.duration = 2.0;
+    return rotate;
+}
 
 #pragma mark - Implementation -
 
 @implementation TBCircularSlider
-
 -(id)initWithFrame:(CGRect)frame{
     
     self = [super initWithFrame:frame];
@@ -71,11 +80,71 @@
 }
 
 
+-(CALayer *)handleLayer{
+    
+    if (!_handleLayer) {
+        _handleLayer = [CALayer layer];
+        
+        //Get the parent layer
+        CALayer *superLayer = self.layer;
+        //Create the sublayer
+        
+        //Set the positioning of the handleLayer in it superlayer
+        CGPoint handleCenter =  [self pointFromAngle: self.angle];
+        CGRect frame = CGRectMake(handleCenter.x, handleCenter.y, TB_LINE_WIDTH, TB_LINE_WIDTH);
+        [self.handleLayer setFrame:frame];
+        //Change the background color, for developing version only
+        self.handleLayer.backgroundColor = [[UIColor redColor] CGColor];
+        
+        //Change the anchor point of this layer, in order to make it rotate around the center of the superlayer
+        CGPoint centerPoint = CGPointMake(self.frame.size.width/2, self.frame.size.height/2);
+        CGFloat minX   = CGRectGetMinX(self.handleLayer.frame);
+        CGFloat minY   = CGRectGetMinY(self.handleLayer.frame);
+        CGFloat width  = CGRectGetWidth(self.handleLayer.frame);
+        CGFloat height = CGRectGetHeight(self.handleLayer.frame);
+        CGPoint anchorPoint =  CGPointMake((centerPoint.x-minX)/width,
+                                           (centerPoint.y-minY)/height);
+        //Changing the anchor point modifies the position of the handlelayer. We need to reposition the layer
+        CGPoint newPoint = CGPointMake(self.handleLayer.bounds.size.width * anchorPoint.x,
+                                       self.handleLayer.bounds.size.height * anchorPoint.y);
+        CGPoint oldPoint = CGPointMake(self.handleLayer.bounds.size.width * self.handleLayer.anchorPoint.x,
+                                       
+                                       self.handleLayer.bounds.size.height * self.handleLayer.anchorPoint.y);
+        CGPoint position = self.handleLayer.position;
+        
+        position.x -= oldPoint.x;
+        position.x += newPoint.x;
+        
+        position.y -= oldPoint.y;
+        position.y += newPoint.y;
+        
+        //Update the anchor point and the position
+        
+        self.handleLayer.position = position;
+        self.handleLayer.anchorPoint = anchorPoint;
+        
+        
+        //self.handleLayer.anchorPoint = anchorPoint;
+        //Correct position
+        
+        
+        //CABasicAnimation *rotate = makeRotateAnimation(0, -M_PI);
+        //[self.handleLayer addAnimation:rotate forKey:nil];
+        
+        [superLayer addSublayer:self.handleLayer];
+        
+        
+    }
+    return _handleLayer;
+}
+
 #pragma mark - UIControl Override -
 
 /** Tracking is started **/
 -(BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event{
     [super beginTrackingWithTouch:touch withEvent:event];
+    self.startingPosition = [touch locationInView:self];
+    NSLog(@"Tracking of touch began!!!");
     
     //We need to track continuously
     return YES;
@@ -87,6 +156,7 @@
 
     //Get touch location
     CGPoint lastPoint = [touch locationInView:self];
+    self.currentPosition = lastPoint;
     
     // Find if the last point touched is in a valid angle
     //Get the center
@@ -97,28 +167,27 @@
     int angle = 360 - floor(currentAngle);
     
     
-    NSLog(@"Current Angle: %d", angle);
+   // NSLog(@"Current Angle: %d", angle);
     
     if (angle>225 && angle<315) {
         //Stop tracking the movement
     } else {
         
         //Use the location to design the Handle
-        [self movehandle:lastPoint];
+        [self movehandle:self.currentPosition];
         
         //Control value has changed, let's notify that
         [self sendActionsForControlEvents:UIControlEventValueChanged];
         
-        
-        
     }
+    //NSLog(@"Tracking is ongoing");
     return YES;
 }
 
 /** Track is finished **/
 -(void)endTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event{
     [super endTrackingWithTouch:touch withEvent:event];
-    
+     NSLog(@"Tracking ended");
 }
 
 
@@ -247,6 +316,7 @@
     
 /** Draw the handle **/
     [self drawTheHandle:ctx];
+    //[self drawSecondHandle:ctx];
     
 }
 
@@ -286,6 +356,23 @@
     
     CGContextRestoreGState(ctx);
 }
+
+/** Draw a white knob over the circle **/
+-(void) drawSecondHandle:(CGContextRef)ctx{
+    
+    //CGContextSaveGState(ctx);
+    
+    //Get the angles of the starting position and the curren position
+    float angle  = AngleFromNorth(self.startingPosition, self.currentPosition, NO);
+    NSLog(@"current angle animation %f", angle);
+    //self.startingPosition = self.currentPosition;
+    
+    //CABasicAnimation *rotate = makeRotateAnimation(0, -M_PI);
+    self.handleLayer;
+    //[self.handleLayer addAnimation:rotate forKey:nil];
+    
+}
+
 
 
 #pragma mark - Math -

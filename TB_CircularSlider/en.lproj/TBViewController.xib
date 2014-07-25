@@ -2,13 +2,13 @@
 <archive type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="8.00">
 	<data>
 		<int key="IBDocument.SystemTarget">2048</int>
-		<string key="IBDocument.SystemVersion">14A283o</string>
-		<string key="IBDocument.InterfaceBuilderVersion">6185.7</string>
-		<string key="IBDocument.AppKitVersion">1324.11</string>
-		<string key="IBDocument.HIToolboxVersion">740.00</string>
+		<string key="IBDocument.SystemVersion">14A298i</string>
+		<string key="IBDocument.InterfaceBuilderVersion">6185.11</string>
+		<string key="IBDocument.AppKitVersion">1326.11</string>
+		<string key="IBDocument.HIToolboxVersion">743.00</string>
 		<object class="NSMutableDictionary" key="IBDocument.PluginVersions">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
-			<string key="NS.object.0">6181.2</string>
+			<string key="NS.object.0">6190.4</string>
 		</object>
 		<array key="IBDocument.IntegratedClassDependencies">
 			<string>IBProxyObject</string>
