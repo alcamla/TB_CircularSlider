@@ -22,6 +22,7 @@
 
 @interface TBCircularSlider(){
     UITextField *_textField;
+    UITextField *_unitsTextField;
     int radius;
     int initialRadius;
     BOOL isVisible;
@@ -31,6 +32,10 @@
 }
 
 @property (nonatomic, strong) CAShapeLayer *handleLayer;
+@property (nonatomic, strong) UIImage *gradientImage;
+@property (nonatomic, strong) UIImage *controlMask;
+@property (nonatomic, strong) UIColor *buttonColor;
+
 //@property (nonatomic, strong) TBHandleLayer *handleOriginalLayer;
 @end
 
@@ -53,10 +58,86 @@ typedef UIColor * (^floatColorBlock)(float);
 
 #pragma mark - Initializers
 
-/** 
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    if (self) {
+        [self setup];
+    }
+    return self;
+}
+
+-(void)setup {
+    self.opaque = NO;
+    //Define the circle radius taking into account the safe area
+    radius = self.frame.size.width/2 - TB_SAFEAREA_PADDING;
+    initialRadius = radius -50;
+    isVisible = NO;
+    ongoingAnimation = NO;
+    
+    //Configure the states of the button
+    numberOfIntervals =  (int)[self.buttonStates count]-1;
+    //Get the states multiplier
+    statesMultiplier = TB_RANGE_FINAL_VALUE/numberOfIntervals;
+    
+    //Initialize the Angle at 0
+    self.angle = 225;
+    
+    
+    //Define the Font
+    //UIFont *font = [UIFont fontWithName:TB_FONTFAMILY size:TB_FONTSIZE];
+    //UIFont *unitsFont = [UIFont fontWithName:TB_FONTFAMILY size:TB_FONTSIZE_SMALL];
+    UIFont *font = [UIFont fontWithName:self.buttonFont.fontName size:TB_FONTSIZE];
+    UIFont *unitsFont = [UIFont fontWithName:font.fontName size:TB_FONTSIZE_SMALL];
+    //Calculate font size needed to display 3 numbers
+    NSString *numberString = @"000";
+    NSString *unitsString =[self.unitsAttributedString string];
+    CGSize fontSize = [numberString sizeWithAttributes:@{NSFontAttributeName:font}];
+    CGSize unitsFontSize =  [unitsString sizeWithAttributes:@{NSFontAttributeName:unitsFont}];
+    
+    //Using a TextField area we can easily modify the control to get user input from this field
+    _textField = [[UITextField alloc]initWithFrame:CGRectMake((self.frame.size.width  - fontSize.width) /2,
+                                                              (self.frame.size.height - fontSize.height) /2,
+                                                              fontSize.width,
+                                                              fontSize.height)];
+    _textField = [[UITextField alloc] initWithFrame:CGRectMake((self.frame.size.width -fontSize.width)/2, (self.frame.size.height -(fontSize.height+unitsFontSize.height))/2, fontSize.width, fontSize.height)];
+    _textField.backgroundColor = [UIColor clearColor];
+    _textField.textColor = [UIColor colorWithWhite:1 alpha:0.8];
+    _textField.textAlignment = NSTextAlignmentCenter;
+    _textField.font = font;
+    NSLog(@"Text => %f",[self calculateButtonValueForAngle:self.angle]);
+    _textField.text = [NSString stringWithFormat:@"%.01f",[self calculateButtonValueForAngle:self.angle]];
+    _textField.enabled = NO;
+    
+    //Create a text field to display the units
+    _unitsTextField = [[UITextField alloc] initWithFrame:CGRectMake((self.frame.size.width -unitsFontSize.width)/2, (self.frame.size.height-unitsFontSize.height)/2 + fontSize.height/2, unitsFontSize.width, unitsFontSize.height)];
+    _unitsTextField.backgroundColor = [UIColor clearColor];
+    _unitsTextField.textColor = [UIColor colorWithWhite:1 alpha:0.8];
+    _unitsTextField.font = unitsFont;
+    _unitsTextField.enabled = NO;
+    
+    //Check the unitsAttString, if it has a baseline property, change the font size in that range
+    [self.unitsAttributedString enumerateAttribute:NSBaselineOffsetAttributeName inRange:NSMakeRange(0, self.unitsAttributedString.length) options:0 usingBlock:^(id value, NSRange range, BOOL *stop) {
+        if (value) {
+            NSLog(@"attribute found");
+            [self.unitsAttributedString addAttribute:NSFontAttributeName value:[UIFont fontWithName:unitsFont.fontName size:unitsFont.pointSize*0.7] range:range];
+        }
+    }];
+    
+    _unitsTextField.attributedText = self.unitsAttributedString;
+    
+    
+    [self addSubview:_textField];
+    [self addSubview:_unitsTextField];
+
+    
+}
+
+/**
 Designated Initializer
  */
--(id)initWithFrame:(CGRect)frame buttonStates:(NSArray *)buttonStates{
+-(id)initWithFrame:(CGRect)frame buttonStates:(NSArray *)buttonStates unitsAttributedString:(NSMutableAttributedString *)unitsAttString font:(UIFont *)font{
     self = [super initWithFrame:frame];
     
     if(self){
@@ -78,32 +159,69 @@ Designated Initializer
         
         
         //Define the Font
-        UIFont *font = [UIFont fontWithName:TB_FONTFAMILY size:TB_FONTSIZE];
+        //UIFont *font = [UIFont fontWithName:TB_FONTFAMILY size:TB_FONTSIZE];
+        //UIFont *unitsFont = [UIFont fontWithName:TB_FONTFAMILY size:TB_FONTSIZE_SMALL];
+        font = [UIFont fontWithName:font.fontName size:TB_FONTSIZE];
+        UIFont *unitsFont = [UIFont fontWithName:font.fontName size:TB_FONTSIZE_SMALL];
         //Calculate font size needed to display 3 numbers
-        NSString *str = @"000";
-        CGSize fontSize = [str sizeWithFont:font];
+        NSString *numberString = @"000";
+        NSString *unitsString =[unitsAttString string];
+        CGSize fontSize = [numberString sizeWithAttributes:@{NSFontAttributeName: font}];
+        CGSize unitsFontSize =  [unitsString sizeWithAttributes:@{NSFontAttributeName: unitsFont}];
         
         //Using a TextField area we can easily modify the control to get user input from this field
         _textField = [[UITextField alloc]initWithFrame:CGRectMake((frame.size.width  - fontSize.width) /2,
                                                                   (frame.size.height - fontSize.height) /2,
                                                                   fontSize.width,
                                                                   fontSize.height)];
+        _textField = [[UITextField alloc] initWithFrame:CGRectMake((frame.size.width -fontSize.width)/2, (frame.size.height -(fontSize.height+unitsFontSize.height))/2, fontSize.width, fontSize.height)];
         _textField.backgroundColor = [UIColor clearColor];
         _textField.textColor = [UIColor colorWithWhite:1 alpha:0.8];
         _textField.textAlignment = NSTextAlignmentCenter;
         _textField.font = font;
-        //_textField.text = [NSString stringWithFormat:@"%d",self.angle];
-        _textField.text = [NSString stringWithFormat:@"%d", 0];
+        NSLog(@"Text => %f",[self calculateButtonValueForAngle:self.angle]);
+        _textField.text = [NSString stringWithFormat:@"%.01f",[self calculateButtonValueForAngle:self.angle]];
         _textField.enabled = NO;
         
+        //Create a text field to display the units
+        _unitsTextField = [[UITextField alloc] initWithFrame:CGRectMake((frame.size.width -unitsFontSize.width)/2, (frame.size.height-unitsFontSize.height)/2 + fontSize.height/2, unitsFontSize.width, unitsFontSize.height)];
+        _unitsTextField.backgroundColor = [UIColor clearColor];
+        _unitsTextField.textColor = [UIColor colorWithWhite:1 alpha:0.8];
+        _unitsTextField.font = unitsFont;
+        _unitsTextField.enabled = NO;
+        
+        //Check the unitsAttString, if it has a baseline property, change the font size in that range
+        [unitsAttString enumerateAttribute:NSBaselineOffsetAttributeName inRange:NSMakeRange(0, unitsAttString.length) options:0 usingBlock:^(id value, NSRange range, BOOL *stop) {
+            if (value) {
+                NSLog(@"attribute found");
+                [unitsAttString addAttribute:NSFontAttributeName value:[UIFont fontWithName:unitsFont.fontName size:unitsFont.pointSize*0.7] range:range];
+            }
+        }];
+        
+        _unitsTextField.attributedText = unitsAttString;
+        
+
         [self addSubview:_textField];
+        [self addSubview:_unitsTextField];
     }
     
     return self;
 }
 
 -(id)initWithFrame:(CGRect)frame{
-    return  [self initWithFrame:frame buttonStates:@[@0.2, @0.4, @0.8, @1, @1.2, @1.4, @1.6, @1.8, @2.0, @2.2, @2.4, @2.6]];
+    NSMutableAttributedString *unitsAttString =  [[NSMutableAttributedString alloc] initWithString:@"cmH2O/l/s"];
+
+    [unitsAttString setAttributes:@{NSBaselineOffsetAttributeName : @-4}
+                            range: NSMakeRange(3, 1)];
+    
+    UIFont *font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    UIFontDescriptor *existingDescriptor = [font fontDescriptor];
+    UIFontDescriptorSymbolicTraits traits = existingDescriptor.symbolicTraits;
+    traits |= UIFontDescriptorTraitCondensed;
+    UIFontDescriptor *newDescriptor = [existingDescriptor fontDescriptorWithSymbolicTraits:traits];
+    UIFont *newFont = [UIFont fontWithDescriptor:newDescriptor size:0];
+    
+    return  [self initWithFrame:frame buttonStates:@[@0.2, @0.4, @0.8, @1, @1.2, @1.4, @1.6, @1.8, @2.0, @2.2, @2.4, @2.6] unitsAttributedString:unitsAttString font:newFont];
 }
 
 #pragma mark - Getters and Setters
@@ -111,10 +229,87 @@ Designated Initializer
 -(CALayer *)handleLayer{
     
     if (!_handleLayer) {
-        //_handleLayer = [CALayer layer];
         _handleLayer = [CAShapeLayer layer];
     }
     return _handleLayer;
+}
+
+-(UIImage *)gradientImage{
+    if (!_gradientImage) {
+        //Create a new image context
+        CGRect rect = CGRectMake(0, 0, TB_SLIDER_SIZE, TB_SLIDER_SIZE);
+        UIGraphicsBeginImageContext(CGSizeMake(TB_SLIDER_SIZE,TB_SLIDER_SIZE));
+        CGContextRef gradientImageCtx = UIGraphicsGetCurrentContext();
+        
+        
+        [self drawGradientInContext:gradientImageCtx  startingAngle:(180-45 -12)*M_PI/180 endingAngle:(360+45+12)*M_PI/180 intRadius:^float(float f) {
+            return radius - TB_LINE_WIDTH/2;
+            //        return 0*f + radius/2*(1-f);
+            //        return 50+10*sin(M_PI*2*f*7);
+            //        return 50+sqrtf(f)*200;
+            //        return radius/2;
+        } outRadius:^float(float f) {
+            //         return radius *f + radius/2*(1-f);
+            return radius + TB_LINE_WIDTH/2;
+            //        return 300+10*sin(M_PI*2*f*17);
+        } withGradientBlock:^UIColor *(float f) {
+            
+            //return [UIColor colorWithHue:f saturation:1 brightness:1 alpha:1];
+            //float sr=90, sg=54, sb=255;
+            //float er=218, eg=0, eb=255;
+            //return [UIColor colorWithRed:(f*sr+(1-f)*er)/255. green:(f*sg+(1-f)*eg)/255. blue:(f*sb+(1-f)*eb)/255. alpha:1];
+            
+            /*From darker green to brighter red:*/
+            //return [UIColor colorWithHue:(1-f)*0.4 saturation:1 brightness:(0.5*f)+0.5 alpha:1];
+            
+            /*Use the same color, ranging from white to intense color
+             (changing the saturation and brightness):*/
+            return [UIColor colorWithHue:0.6 saturation:f brightness:(0.3*f)+0.7 alpha:1];
+            
+        } withSubdiv:256 withCenter:CGPointMake(CGRectGetMidX(rect), CGRectGetMidY(rect)) withScale:1];
+        
+        _gradientImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+    }
+    return _gradientImage;
+    
+}
+
+-(NSArray *)buttonStates{
+    if (!_buttonStates) {
+        _buttonStates = @[@0.2, @0.4, @0.8, @1, @1.2, @1.4, @1.6, @1.8, @2.0, @2.2, @2.4, @2.6];
+    }
+    return _buttonStates;
+}
+
+-(UIImage *)controlMask {
+    if (!_controlMask) {
+        UIGraphicsBeginImageContext(CGSizeMake(TB_SLIDER_SIZE,TB_SLIDER_SIZE));
+        CGContextRef imageCtx = UIGraphicsGetCurrentContext();
+        
+        //CGContextAddArc(imageCtx, self.frame.size.width/2  , self.frame.size.height/2, radius, 0, ToRad(self.angle), 0);
+        //CGContextAddArc(imageCtx, self.frame.size.width/2, self.frame.size.height/2, radius, 225*M_PI/180, 315*M_PI/180, 1);
+        CGContextAddArc(imageCtx, self.frame.size.width/2, self.frame.size.height/2, radius, 225*M_PI/180, 315*M_PI/180, 1);
+        [[UIColor redColor]set];
+        
+        
+        //define the path
+        CGContextSetLineWidth(imageCtx, TB_LINE_WIDTH);
+        CGContextSetLineCap(imageCtx, kCGLineCapRound);
+        
+        CGContextDrawPath(imageCtx, kCGPathStroke);
+        
+        _controlMask = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();        
+    }
+    return _controlMask;
+}
+
+-(UIColor *)buttonColor{
+    if (!_buttonColor) {
+        _buttonColor = [UIColor colorWithHue:0.6 saturation:0 brightness:(0.3*0)+0.7 alpha:1];
+    }
+    return _buttonColor;
 }
 
 #pragma mark - UIControl Override
@@ -180,6 +375,7 @@ Designated Initializer
     
     //[self animateDisappearanceOfHandle:self.handleLayer];
     isVisible = NO;
+
     [self setNeedsDisplay];
 }
 
@@ -304,6 +500,7 @@ when the layer is going to be moved to a point represented in the superlayer
         CGPathRef scaledPath = CGPathCreateCopyByTransformingPath(trapezoid, &concat);
         
         CGContextAddPath(ctx, scaledPath);
+        CGPathRelease(scaledPath);
         CGContextSetFillColorWithColor(ctx,colorBlock(fraction).CGColor);
         CGContextSetStrokeColorWithColor(ctx, colorBlock(fraction).CGColor);
         CGContextSetMiterLimit(ctx, 0);
@@ -317,11 +514,14 @@ when the layer is going to be moved to a point represented in the superlayer
         CGPathAddLineToPoint(outerEnveloppe, 0, p3.x, p3.y);
         CGPathAddLineToPoint(innerEnveloppe, 0, p0.x, p0.y);
     }
-    CGContextSetLineWidth(ctx, 10);
+    CGContextSetLineWidth(ctx, 0.5);
+    CGContextSetLineCap(ctx, kCGLineCapRound);
     CGContextSetLineJoin(ctx, kCGLineJoinRound);
     CGContextSetStrokeColorWithColor(ctx, [UIColor blackColor].CGColor);
     CGContextAddPath(ctx, outerEnveloppe);
     CGContextAddPath(ctx, innerEnveloppe);
+    CGPathRelease(outerEnveloppe);
+    CGPathRelease(innerEnveloppe);
     CGContextMoveToPoint(ctx, p0.x, p0.y);
     CGContextAddLineToPoint(ctx, p3.x, p3.y);
     CGContextMoveToPoint(ctx, p4.x, p4.y);
@@ -335,15 +535,15 @@ when the layer is going to be moved to a point represented in the superlayer
     //Create the path
     CGContextAddArc(ctx, self.frame.size.width/2, self.frame.size.height/2, radius -TB_LINE_WIDTH/2, 0, M_PI *2, 0);
     
-    //Set the stroke color to black
-    [[UIColor grayColor]setStroke];
+    //Set the stroke color to the parameter color
+    [self.buttonColor setStroke];
     
     //Define line width and cap
 
     CGContextSetLineCap(ctx, kCGLineCapButt);
     
     //draw it!
-    [[UIColor grayColor] setFill];
+    [self.buttonColor setFill];
     CGContextDrawPath(ctx, kCGPathEOFillStroke);
     
     
@@ -358,73 +558,24 @@ when the layer is going to be moved to a point represented in the superlayer
     //** Draw the circle that indicates the level (using a clipped gradient) **/
     
     /** Create THE MASK Image **/
-    UIGraphicsBeginImageContext(CGSizeMake(TB_SLIDER_SIZE,TB_SLIDER_SIZE));
-    CGContextRef imageCtx = UIGraphicsGetCurrentContext();
-    
-    //CGContextAddArc(imageCtx, self.frame.size.width/2  , self.frame.size.height/2, radius, 0, ToRad(self.angle), 0);
-    CGContextAddArc(imageCtx, self.frame.size.width/2, self.frame.size.height/2, radius, 225*M_PI/180, 315*M_PI/180, 1);
-    [[UIColor redColor]set];
-    
-    
-    //define the path
-    CGContextSetLineWidth(imageCtx, TB_LINE_WIDTH);
-    CGContextSetLineCap(imageCtx, kCGLineCapRound);
-    
-    CGContextDrawPath(imageCtx, kCGPathStroke);
-    
-    //save the context content into the image mask
-    CGImageRef mask = CGBitmapContextCreateImage(UIGraphicsGetCurrentContext());
-    UIGraphicsEndImageContext();
-    
-    /** Clip Context to the mask **/
+
     CGContextSaveGState(ctx);
     
-    CGContextClipToMask(ctx, self.bounds, mask);
-    CGImageRelease(mask);
+    CGContextClipToMask(ctx, self.bounds, self.controlMask.CGImage);
     
-    /** THE GRADIENT **/
-    /*
-    //// Gradient Declarations
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGFloat gradientLocations[] = {0, 0.58, 0.79};
+    /*Another way to get the clipping */
+    //CGRect arcBounds = CGRectInset(self.bounds, 10.0f, 10.0f);
+    //CGPoint arcCenter = CGPointMake(CGRectGetMidX(arcBounds), CGRectGetMidY(arcBounds));
+    //CGFloat arcRadius = radius;
+    //UIBezierPath *arc = [UIBezierPath bezierPathWithArcCenter:arcCenter radius:arcRadius startAngle:-M_PI / 3.0 endAngle:-2.0 * M_PI / 3.0 clockwise:NO];
+    //CGPathRef shape = CGPathCreateCopyByStrokingPath(arc.CGPath, NULL, TB_LINE_WIDTH, kCGLineCapRound, kCGLineJoinRound, 10.0f);
+    //CGContextBeginPath(ctx);
+    //CGContextAddPath(ctx, shape);
+    //CGContextClip(ctx);
     
-    //// Color Declarations
-    UIColor* stimulusColor = [UIColor colorWithRed: 0.842 green: 0.029 blue: 0.038 alpha: 1];
-    //[UIColor colorWithRed: 0.342 green: 0.842 blue: 0.304 alpha: 1];
-    
-    CGFloat stimulusColorRGBA[4];
-    [stimulusColor getRed: &stimulusColorRGBA[0] green: &stimulusColorRGBA[1] blue: &stimulusColorRGBA[2] alpha: &stimulusColorRGBA[3]];
-    UIColor* topColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.6) green: (stimulusColorRGBA[1] * 0.6) blue: (stimulusColorRGBA[2] * 0.6) alpha: (stimulusColorRGBA[3] * 0.6 + 0.4)];
-    UIColor* bottomColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.4 + 0.6) green: (stimulusColorRGBA[1] * 0.4 + 0.6) blue: (stimulusColorRGBA[2] * 0.4 + 0.6) alpha: (stimulusColorRGBA[3] * 0.4 + 0.6)];
-    CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)@[(id)bottomColor.CGColor, (id)[UIColor colorWithRed: 0.471 green: 0.721 blue: 0.452 alpha: 1].CGColor, (id)topColor.CGColor], gradientLocations);
-    
-    CGAffineTransform ovalTransform = CGAffineTransformMakeRotation(60*(-M_PI/180));
-    
-    
-    CGContextDrawLinearGradient(ctx, gradient,
-                                CGPointApplyAffineTransform(CGPointMake(CGRectGetMidX(rect), CGRectGetMinY(rect)), ovalTransform),
-                                CGPointApplyAffineTransform(CGPointMake(CGRectGetMidX(rect), CGRectGetMaxY(rect)+40), ovalTransform),
-                                0);
-    CGGradientRelease(gradient), gradient = NULL;
-    */
-//    [self drawGradientInContext:ctx  startingAngle:M_PI/16 endingAngle:2*M_PI-M_PI/16 intRadius:^float(float f) {
-//        //        return 0*f + radius/2*(1-f);
-//        return 200+10*sin(M_PI*2*f*7);
-//        //        return 50+sqrtf(f)*200;
-//        //        return radius/2;
-//    } outRadius:^float(float f) {
-//        //         return radius *f + radius/2*(1-f);
-//        return radius;
-//        //        return 300+10*sin(M_PI*2*f*17);
-//    } withGradientBlock:^UIColor *(float f) {
-//        
-//        //        return [UIColor colorWithHue:f saturation:1 brightness:1 alpha:1];
-//        float sr=90, sg=54, sb=255;
-//        float er=218, eg=0, eb=255;
-//        return [UIColor colorWithRed:(f*sr+(1-f)*er)/255. green:(f*sg+(1-f)*eg)/255. blue:(f*sb+(1-f)*eb)/255. alpha:1];
-//        
-//    } withSubdiv:256 withCenter:CGPointMake(CGRectGetMidX(rect), CGRectGetMidY(rect)) withScale:1];
+    [self.gradientImage drawInRect:self.bounds];
 
+    
     
     CGContextRestoreGState(ctx);
     
@@ -508,6 +659,7 @@ when the layer is going to be moved to a point represented in the superlayer
     UIColor* topColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.6) green: (stimulusColorRGBA[1] * 0.6) blue: (stimulusColorRGBA[2] * 0.6) alpha: (stimulusColorRGBA[3] * 0.6 + 0.4)];
     UIColor* bottomColor = [UIColor colorWithRed: (stimulusColorRGBA[0] * 0.4 + 0.6) green: (stimulusColorRGBA[1] * 0.4 + 0.6) blue: (stimulusColorRGBA[2] * 0.4 + 0.6) alpha: (stimulusColorRGBA[3] * 0.4 + 0.6)];
     CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)@[(id)bottomColor.CGColor, (id)[UIColor colorWithRed: 0.471 green: 0.721 blue: 0.452 alpha: 1].CGColor, (id)topColor.CGColor], gradientLocations);
+    CGColorSpaceRelease(colorSpace);
     
     CGAffineTransform ovalTransform = CGAffineTransformMakeRotation(60*(-M_PI/180));
     
@@ -646,6 +798,36 @@ when the layer is going to be moved to a point represented in the superlayer
     return handleInitialCenterPoint;
 }
 
+
+- (UIColor *) colorOfPoint:(CGPoint)point
+{
+    unsigned char pixel[4] = {0};
+    
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    
+    CGContextRef context = CGBitmapContextCreate(pixel, 1, 1, 8, 4, colorSpace, kCGBitmapAlphaInfoMask & kCGImageAlphaPremultipliedLast);
+    
+    CGContextTranslateCTM(context, -point.x, -point.y);
+    
+    [self.layer renderInContext:context];
+    
+    CGContextRelease(context);
+    CGColorSpaceRelease(colorSpace);
+    
+    //NSLog(@"pixel: %d %d %d %d", pixel[0], pixel[1], pixel[2], pixel[3]);
+    
+    UIColor *color = [UIColor colorWithRed:pixel[0]/255.0 green:pixel[1]/255.0 blue:pixel[2]/255.0 alpha:pixel[3]/255.0];
+    
+    return color;
+}
+
+
+-(void)updateButtonColor{
+    float currentValue = [self linearizeAngleInRange225_315:self.angle]/270.0;
+    self.buttonColor = [UIColor colorWithHue:0.6 saturation:currentValue brightness:(0.3*currentValue)+0.7 alpha:1];
+}
+
+
 #pragma mark - Animation
 
 -(void)animateAppearanceOfHandleWithChangeInPositionEffect:(CAShapeLayer *)handleLayer
@@ -768,6 +950,7 @@ when the layer is going to be moved to a point represented in the superlayer
     //Update the textfield
     _textField.text = [NSString stringWithFormat:@"%.01f", value];
     //Redraw
+    [self updateButtonColor];
     [self setNeedsDisplay];
     [self calculateButtonValueForAngle:self.angle];
 }
@@ -781,6 +964,7 @@ when the layer is going to be moved to a point represented in the superlayer
     //Update the textfield
     _textField.text = [NSString stringWithFormat:@"%.01f", value];
     //Redraw
+    [self updateButtonColor];
     [self setNeedsDisplay];
     [self calculateButtonValueForAngle:self.angle];
 }
@@ -802,7 +986,7 @@ when the layer is going to be moved to a point represented in the superlayer
     int currentState =[self linearizeAngleInRange225_315:angle];
     int indexOfCurrentButtonState = round(currentState /statesMultiplier);
     buttonValue = [(NSNumber*)[self.buttonStates objectAtIndex:indexOfCurrentButtonState]doubleValue];
-    NSLog(@"The button value to set is => %.01f", buttonValue);
+    //NSLog(@"The button value to set is => %.01f", buttonValue);
     return  buttonValue;
 }
 

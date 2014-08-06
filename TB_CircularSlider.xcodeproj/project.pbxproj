@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		6C2D33A1198047E50025F3B1 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C2D33A0198047E50025F3B1 /* QuartzCore.framework */; };
-		6C4D012419870EFF000F7994 /* TBHandleLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C4D012319870EFF000F7994 /* TBHandleLayer.m */; };
 		A586DF5A16AC5E760074B64D /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = A586DF5916AC5E760074B64D /* icon.png */; };
 		A5EB2F8116A1E217006E4B6A /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5EB2F8016A1E217006E4B6A /* UIKit.framework */; };
 		A5EB2F8316A1E217006E4B6A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5EB2F8216A1E217006E4B6A /* Foundation.framework */; };
@@ -27,8 +26,6 @@
 
 /* Begin PBXFileReference section */
 		6C2D33A0198047E50025F3B1 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		6C4D012219870EFF000F7994 /* TBHandleLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TBHandleLayer.h; sourceTree = "<group>"; };
-		6C4D012319870EFF000F7994 /* TBHandleLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TBHandleLayer.m; sourceTree = "<group>"; };
 		A50777E816A95379001FAD1D /* TB_CircularSlider.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = TB_CircularSlider.entitlements; sourceTree = "<group>"; };
 		A586DF5916AC5E760074B64D /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon.png; sourceTree = "<group>"; };
 		A5EB2F7C16A1E217006E4B6A /* TB_CircularSlider.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TB_CircularSlider.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -100,8 +97,6 @@
 		A5EB2F8616A1E217006E4B6A /* TB_CircularSlider */ = {
 			isa = PBXGroup;
 			children = (
-				6C4D012219870EFF000F7994 /* TBHandleLayer.h */,
-				6C4D012319870EFF000F7994 /* TBHandleLayer.m */,
 				A50777E816A95379001FAD1D /* TB_CircularSlider.entitlements */,
 				A5EB2FA316A1E287006E4B6A /* Lib */,
 				A5EB2F8F16A1E217006E4B6A /* TBAppDelegate.h */,
@@ -224,7 +219,6 @@
 				A5EB2F8D16A1E217006E4B6A /* main.m in Sources */,
 				A5EB2F9116A1E217006E4B6A /* TBAppDelegate.m in Sources */,
 				A5EB2F9A16A1E217006E4B6A /* TBViewController.m in Sources */,
-				6C4D012419870EFF000F7994 /* TBHandleLayer.m in Sources */,
 				A5EB2FA616A1E2A5006E4B6A /* TBCircularSlider.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
